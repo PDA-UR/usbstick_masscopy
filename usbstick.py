@@ -58,6 +58,7 @@ class USBStick(threading.Thread):
         """Create new USBStick Object."""
         # threading.Thread.__init__(self)
         super(USBStick, self).__init__()
+        self.verbose = False  # Currently not settable from outside --RW
         self.queue = queue
 
         self.udev_context = pyudev.Context()
@@ -72,7 +73,10 @@ class USBStick(threading.Thread):
         # host7/target7:0:0/7:0:0:0/block/sdc/sdc1
         self.node = self.device.device_node
         # device_node: /dev/sdc1
-        self.label = self.device['ID_FS_LABEL']
+        if 'ID_FS_LABEL' in self.device:
+            self.label = self.device['ID_FS_LABEL']
+        else:
+            self.label = None
         self.mount_point = None
         self.config = configdict.merge_deep(self.default_config, config)
 
@@ -270,17 +274,10 @@ class USBStick(threading.Thread):
             label = self.config['disc_label']
         # mkfs -t fat -F 32 -n "world" /dev/sdb1
         # mkfs -t fat -F 32 -n "world" /dev/sdb1
-        command = [
-            "mkfs.fat",
-            # "-t=fat",
-            "-F 32",
-            "-n {}".format(label),
-            "{}".format(self.mount_point),
-        ]
+        command = f"mkfs.fat -F 32 -n {label} {self.node}"
         result_string = ""
         try:
-            result_string += subprocess.check_output(command).decode()
-            # print("result_string", result_string)
+            result_string += subprocess.check_output(command, shell=True).decode()
         except subprocess.CalledProcessError as e:
             error_message = "failed: {}".format(e)
             print(error_message)
@@ -374,14 +371,18 @@ class USBStick(threading.Thread):
                 os.remove(full_path)
                 print("removed: {}".format(full_path))
             except FileNotFoundError as why:
-                infos.extend(why)
+                info = {
+                    'mount_point': self.mount_point,
+                    'file_name': file_name,
+                }
+                infos.extend((info, str(why)))
             except Exception as why:
                 info = {
                     'mount_point': self.mount_point,
                     'file_name': file_name,
                 }
                 errors.extend((info, str(why)))
-        if infos:
+        if infos and self.verbose:
             print(infos)
         if errors:
             raise Error(errors)

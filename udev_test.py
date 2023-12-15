@@ -68,14 +68,15 @@ for dev in context.list_devices(
     DEVTYPE='partition'
 ):
     print(dev)
-print("problem is that all properties are matche as OR :-(")
+print("problem is that all properties are matched as OR :-(")
 
 
 ##########################################
 print("-"*42)
 print("start monitoring for block devices with partition:")
 monitor = pyudev.Monitor.from_netlink(context)
-monitor.filter_by('block', device_type="partition")
+monitor.filter_by(subsystem = 'block')
+#monitor.filter_by(subsystem = 'block', device_type = "partition")
 
 
 def print_properties(device):

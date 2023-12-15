@@ -77,7 +77,8 @@ class SystemManager(object):
 
         self.context = pyudev.Context()
         self.monitor = pyudev.Monitor.from_netlink(self.context)
-        self.monitor.filter_by('block', device_type="partition")
+        #self.monitor.filter_by('block', device_type="partition")
+        self.monitor.filter_by('block')
         self.observer = pyudev.MonitorObserver(
             self.monitor,
             self._even_partition
@@ -138,7 +139,7 @@ class SystemManager(object):
         """Print partition event."""
         # print('background event {0.action}: {0.device_path}'.format(device))
         if 'ID_BUS' in device:
-            if device['ID_BUS'] == 'usb':
+            if device.properties['ID_BUS'] == 'usb':
                 # print("-"*42)
                 # print("event: {} '{}'".format(
                 #     device.action,
